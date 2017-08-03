@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="UTF-8">
+		<title>Rapid GUI development for IOT systems - pycon2017</title>
+		<script src="https://cdnjs.cloudflare.com/ajax/libs/headjs/1.0.3/head.min.js"></script>
+
+		<script>
+function populate_code(celem) {
+	var creq = new XMLHttpRequest();
+	creq.responseType = "text";
+	creq.onload = function (e) {
+		var text = document.createTextNode( creq.responseText );
+		celem.innerHTML = "";
+		celem.appendChild(text);
+	};
+	creq.open("GET", celem.getAttribute("data-src"));
+	creq.send();
+}
+		</script>
+
+<style>
+mark {
+	display: block; /* make background go full width */
+	background-color: #e54;
+}
+.reveal p.attribution {
+	font-size: 20px;
+	line-height: 1em;
+	margin-top: -25px;
+}
+.twocol, .multicol {
+	display: flex;
+	align-items: center;
+	justify-content: space-evenly;
+}
+.reveal pre code {
+	max-height: unset !important;
+	overflow-x: hidden !important;
+}
+.reveal .twocol > pre, .twocol > * {
+	width: 40%;
+}
+</style>
+
+	</head>
+	<body><div class="reveal"><div class="slides">
+		<section style="">
+			<!-- <h1>Rapid GUI development for IOT systems</h1> -->
+			<!-- <iframe srcdoc="<p style='background: green'></p>"></iframe> -->
+			<img class="plain" style="background: unset;" data-src="images/gooey_iot_r.png">
+			<p><a href="https://github.com/lod/pycon2017">Slides &amp; Code - https://github.com/lod/pycon2017</a></p>
+			<aside class="notes" data-markdown>
+- Welcome, thank for attending
+- Demo: Screen - Ball - Board - Buttons
+- The GUI is web based - fairly common
+- Structuring system the way I will show you has unique advantages
+	- This arrangement has strong, unique, advantages for embedded systems
+			</aside>
+		</section>
+
+		<section>
+			<h1>GUI</h1>
+			<div class="twocol">
+			<iframe style="height:530px;" data-src="http://localhost/projects/pycon2017/software/html/index.html"></iframe>
+			<pre style="width: 40%; margin: unset;"><code id="guicode" data-trim style="font-size: 8px; line-height: 1em; overflow: hidden; height: 65em;" data-src="code/index.html"></code></pre>
+			</div>
+			<script>
+populate_code(document.getElementById("guicode"));
+			</script>
+			<aside class="notes" data-markdown>
+- This talk is about GUIs - let's put this out there - I hate GUIs
+- This GUI is a webpage - I don't mind web pages - lot easier than tkinter
+- Can restyle, easy to hire frontend guys
+- Full system is a linux system, xorg server, no login, basic embedded chromium browser
+- Content can be served off filesystem, no webserver required
+			</aside>
+		</section>
+
+		<section>
+			<h1>Live</h1>
+			<iframe style="width: 500px; height: 500px;" data-src="http://localhost/projects/pycon2017/software/html/index.html"></iframe>
+			<aside class="notes" data-markdown>
+- This is that (gesture at other screen)
+- Use mouse to push button - actions here update over there
+- Push physical button - actions here update over there
+- Internetting the thing - tick
+
+- Can be done with HTML source on the PC, great for development or when you are risk adverse and doing a presentation
+- Can also set up a basic webserver and serve from the device
+			</aside>
+		</section>
+
+		
+		<section>
+			<section>
+				<h1>Server Side</h1>
+				<div  style="font-size: 14px"class="multicol">
+					<pre style="width: 30%"><code id="m_lightball" data-trim style="overflow: hidden" data-src="code/lightball.py"></code></pre>
+					<pre style="width: 30%"><code id="m_wshandler" data-trim style="height: 60em;" data-src="code/websocketcontrolhandler.py"></code></pre>
+					<pre style="width: 30%"><code id="m_main" data-trim data-src="code/main.py"></code></pre>
+				</div>
+				<script>
+					populate_code(document.getElementById("m_lightball"));
+					populate_code(document.getElementById("m_wshandler"));
+					populate_code(document.getElementById("m_main"));
+				</script>
+			<aside class="notes" data-markdown>
+- This is the full source code of the websocket server
+- Each of those columns is a different class
+- I will now go through them with bigger font
+			</aside>
+			</section>
+			<section>
+				<pre style="font-size: 16px"><code id="s_lightball" data-trim data-src="code/s_lightball.py"></code></pre>
+				<script>
+					populate_code(document.getElementById("s_lightball"));
+				</script>
+			<aside class="notes" data-markdown>
+- The lightball class controls the ball
+- It holds the state, current colour
+- It also changes the colour using LIRC
+			</aside>
+			</section>
+			<section>
+				<pre style="font-size: 16px"><code id="s_wshandler1" data-trim data-src="code/wsh1.py"></code></pre>
+				<script>
+					populate_code(document.getElementById("s_wshandler1"));
+				</script>
+			<aside class="notes" data-markdown>
+- This is the first half of WebSocketControlHandler
+- This code actually holds the magic to the system
+- A new instance is created for each connection
+- We create an array in which we store each instance
+- Incoming messages are decoded, processed
+- Then EVERY client is updated
+			</aside>
+			</section>
+			<section>
+				<pre style="font-size: 16px"><code id="s_wshandler2" data-trim data-src="code/wsh2.py"></code></pre>
+				<script>
+					populate_code(document.getElementById("s_wshandler2"));
+				</script>
+			<aside class="notes" data-markdown>
+- This is the second half
+- Where we do the processing and updating
+- Fairly dull, passing very basic JSON around with colour
+			</aside>
+			</section>
+			<section>
+				<pre style="font-size: 16px"><code id="s_main" data-trim data-src="code/main.py"></code></pre>
+				<script>
+					populate_code(document.getElementById("s_main"));
+				</script>
+			<aside class="notes" data-markdown>
+- main, initialise and fire off tornado
+- It then does the work for us
+			</aside>
+			</section>
+		</section>
+
+		<section>
+			<h1>API</h1>
+			<img data-src="images/Sweet_free_hugs_r.jpg">
+			<p class="attribution"><a href="https://commons.wikimedia.org/wiki/File:Sweet_free_hugs.jpg">Photo by Jesslee Cuizon - CC BY 2.0</a></p>
+			<aside class="notes" data-markdown>
+- That websocket we created
+- Add some documentation - that you were totally going to do anyway - we have an API - wide client support
+- Authorisation can be added if required - standard online systems - Oauth2 for example
+			</aside>
+		</section>
+
+		<section>
+			<h1>Backend clients</h1>
+			<img data-src="images/front_floating_whole.med.jpeg">
+			<!-- Image licence on https://www.hybridairvehicles.com/news-and-media/press
+	   Allows for use in promotion of science, technology, engineering and maths initiatives.
+			-->
+			<aside class="notes" data-markdown>
+- Websockets allow extension on the backend too
+- Heavy processing, or sections of code which require alternative languages to be used for specific librarys or low level code for precise timing
+- Write another program - link in via websocket
+- Python code is the system controller, coordinates and commands
+			</aside>
+		</section>
+
+
+		<section>
+			<section data-transition="none-out">
+				<h1>Backend clients</h1>
+				<div class="twocol" style="font-size: 10px;">
+					<pre><code id="ccodel" data-src="code/client.1.c"></code></pre>
+					<pre><code id="ccoder" data-src="code/client.2.c"></code></pre>
+				</div>
+				<script>
+					populate_code(document.getElementById("ccodel"));
+					populate_code(document.getElementById("ccoder"));
+				</script>
+				<aside class="notes" data-markdown>
+- This is a basic C program that controls the switches
+- Not going to go through it
+- Offtopic
+				</aside>
+			</section>
+			<section data-transition="none-in">
+				<h1>Backend clients</h1>
+				<div class="twocol" style="font-size: 10px" data-external="sections/hccode.html"></div>
+			</section>
+		</section>
+
+		<section>
+			<h1>Distant backend clients</h1>
+			<img data-src="images/duck_r.jpg">
+			<p class="attribution"><a href="https://www.flickr.com/photos/lorenjavier/12016947454/">Meeting Spider Web Daisy Duck by Loren Javier - CC BY-NC-ND 2.0</a></p>
+			<aside class="notes" data-markdown>
+- More complex devices use multiple processors
+- Communication typically by serial links, ethernet is overkill
+- A serial link is a bidirectional data stream
+- A websocket is a bidirectional data stream
+- So what if we take our serial link, put it in a duck costume and call it a websocket
+			</aside>
+		</section>
+
+		<section>
+		<section>
+			<h1>Apps</h1>
+			<img data-src="images/phone_r.jpg">
+			<aside class="notes" data-markdown>
+- But wait, there's more
+- These days, not properly IOTy if we don't have an app
+- As you have probably figured out I'm a curmudgeon, not an app writer
+- Google have an interesting thing called Progressive Web Apps
+- Not widely used, fairly new
+- FirefoxOS concept of webpage based app, locally cached
+			</aside>
+		</section>
+
+		<section>
+			<h1>Apps</h1>
+			<p>Insert Demo Here!</p>
+			<aside class="notes" data-markdown>
+- So you need three things to make a Web App Progressive
+- It must come across SSL
+- We have actually always been doing that, the certificate is kludged but certificate management in the IOT space is well beyond the scope of this talk
+- We need to supply a manifest file, easy, a few lines
+- We need to have a javascript service worker, leaving that as homework
+			</aside>
+		</section>
+		</section>
+
+		<section>
+			<h1>Summary</h1>
+			<img class="plain" style="background: unset" data-src="images/summary.png">
+			<aside class="notes" data-markdown>
+- This presentation shows a really simple way to structure an embedded system GUI
+- That gives you not only a GUI, but a framework to pull the project together
+- There is a bit of code setting up the framework for the first time
+- All code used here is distributed under Unlicence, except C client
+- You too can have your own glowing orb
+			</aside>
+		</section>
+
+		<section>
+			<h1>Questions?</h1>
+			<img data-src="images/orb_r.jpg">
+			<p><a href="https://github.com/lod/pycon2017">Slides &amp; Code - https://github.com/lod/pycon2017</a></p>
+		<section>
+
+		</div></div>
+
+<!-- TODO: Add target time to the top of each comment block -->
+
+		<script>
+
+			head.load("reveal.js/css/reveal.css");
+			head.load("reveal.js/css/theme/moon.css");
+			head.load("reveal.js/lib/css/zenburn.css");
+
+			head.js("reveal.js/js/reveal.js", function() {
+				Reveal.initialize({
+					width: 1280,
+					height: 720,
+					margin: 0.1,
+					dependencies: [
+						{src: "reveal.js/plugin/notes/notes.js", async: true},
+						{src: "reveal_external/external/external.js", async: true},
+						{ src: 'reveal.js/plugin/highlight/highlight.js', async: true, callback: function() { hljs.initHighlightingOnLoad(); } },
+						{ src: 'reveal.js/plugin/markdown/marked.js', condition: function() { return !!document.querySelector( '[data-markdown]' ); } },
+						{ src: 'reveal.js/plugin/markdown/markdown.js', condition: function() { return !!document.querySelector( '[data-markdown]' ); } },
+
+					],
+				});
+			});
+
+		</script>
+	</body>
+</html>

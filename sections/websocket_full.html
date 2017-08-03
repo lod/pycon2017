@@ -1,0 +1,404 @@
+		<section>
+			<h1>Websocket server</h1>
+			<div style="float: left; width: 400px">
+			<pre><code data-trim style="font-size: 8px; line-height: 1em; height: 40em;">
+from tornado.ioloop import IOLoop, PeriodicCallback
+import tornado.web
+import tornado.websocket
+from tornado.escape import json_encode, json_decode
+
+from microwave import Microwave
+
+from datetime import datetime
+
+import logging
+
+logging.basicConfig(level=logging.DEBUG)
+
+clients = []
+
+microwave = Microwave()
+
+web_root = "../gui/"
+
+def get_status():
+    return {
+        "time" : microwave.time,
+        "time_remaining" : microwave.time_remaining,
+        "temperature" : microwave.temperature,
+        "target_temperature" : microwave.target_temperature,
+        "power" : microwave.power,
+        "state" : microwave.state,
+    }
+			</code></pre>
+</div>
+			<div style="float: left; width: 400px">
+			<pre><code data-trim style="font-size: 8px; line-height: 1em; height: 40em;">
+
+class IndexHandler(tornado.web.RequestHandler):
+  @tornado.web.asynchronous
+  def get(request):
+    logging.getLogger("IndexHandler").info("FALLBACK")
+    with open(web_root + "index.html", 'r') as file:
+        request.write(file.read())
+    request.finish()
+
+class WebSocketControlHandler(tornado.websocket.WebSocketHandler):
+  def open(self, *args):
+    logging.getLogger("WebSocketControlHandler").info("open")
+    clients.append(self)
+
+  def check_origin(self, origin):
+    return True # Allow any origin
+
+  def on_message(self, raw_message):
+    logger = logging.getLogger("WebSocketControlHandler")
+
+    logger.debug(raw_message)
+
+    try:
+      message = json_decode(raw_message)
+    except ValueError:
+      logger.warn("Non-JSON message {}".format(raw_message))
+      return
+
+    self.process_message(message)
+
+    json_status = json_encode(get_status())
+
+    for client in clients:
+      client.write_message(json_status)
+
+  def on_close(self):
+    logging.getLogger("WebSocketControlHandler").info("close")
+    clients.remove(self)
+			</code></pre>
+</div>
+			<div style="float: left; width: 400px">
+			<pre><code data-trim style="font-size: 8px; line-height: 1em; height: 40em;">
+
+  def process_message(self, message):
+    logger = logging.getLogger("WebSocketControlHandler")
+
+    # Blank messages are valid, extra fields are ignored
+    # Each key must have it's own defined parser
+    # State must be must be last
+    message_keys = ["time", "target_temperature", "power", "state"]
+    for key in message_keys:
+      if key in message: # TODO: If message is a string - dies
+        try:
+          setattr(microwave, key, message[key])
+        except ValueError:
+          logger.warn(
+            "Invalid JSON, invalid value for {}: {}"
+              .format(key, message))
+
+app = tornado.web.Application([
+  (r'/control', WebSocketControlHandler),
+  # A touch dodgy, anything with a literal . in it is a real file
+  # Anything without a dot is probably a fancy angular fake path
+  (r'/(.*\..*)', tornado.web.StaticFileHandler,
+    {"path": web_root, "default_filename": "index.html"}
+  ),
+  ], default_handler_class=IndexHandler
+)
+
+app.listen(8042)
+
+def update_microwave():
+  microwave.tick()
+
+  json_status = json_encode(get_status())
+
+  for client in clients:
+    client.write_message(json_status)
+
+
+PeriodicCallback(update_microwave, 1000).start()
+
+IOLoop.instance().start()
+
+
+			</code></pre>
+			</div>
+			<aside class="notes" data-markdown>
+- Python code, whew
+- Tornado library
+- Highlight tornado boilerplate
+- Highlight custom code
+- Show how custom code works
+
+- That is how the basic demo works, but wait, we are only 5 minutes in
+- We have a web based system, do remote access
+			</aside>
+		</section>
+		<section>
+			<h1>Websocket server</h1>
+			<div style="float: left; width: 400px">
+			<pre><code data-trim data-noescape style="font-size: 8px; line-height: 1em; height: 40em;">
+<mark>from tornado.ioloop import IOLoop, PeriodicCallback
+import tornado.web
+import tornado.websocket
+from tornado.escape import json_encode, json_decode
+</mark>
+from microwave import Microwave
+
+<mark>from datetime import datetime
+
+import logging
+
+logging.basicConfig(level=logging.DEBUG)
+
+clients = []
+</mark>
+microwave = Microwave()
+
+<mark>web_root = "../gui/"</mark>
+
+def get_status():
+    return {
+        "time" : microwave.time,
+        "time_remaining" : microwave.time_remaining,
+        "temperature" : microwave.temperature,
+        "target_temperature" : microwave.target_temperature,
+        "power" : microwave.power,
+        "state" : microwave.state,
+    }
+			</code></pre>
+</div>
+			<div style="float: left; width: 400px">
+			<pre><code data-trim data-noescape style="font-size: 8px; line-height: 1em; height: 40em;">
+
+<mark>class IndexHandler(tornado.web.RequestHandler):
+  @tornado.web.asynchronous
+  def get(request):
+    logging.getLogger("IndexHandler").info("FALLBACK")
+    with open(web_root + "index.html", 'r') as file:
+        request.write(file.read())
+    request.finish()
+
+class WebSocketControlHandler(tornado.websocket.WebSocketHandler):
+  def open(self, *args):
+    logging.getLogger("WebSocketControlHandler").info("open")
+    clients.append(self)
+
+  def check_origin(self, origin):
+    return True # Allow any origin
+
+  def on_message(self, raw_message):
+    logger = logging.getLogger("WebSocketControlHandler")
+
+    logger.debug(raw_message)
+
+    try:
+      message = json_decode(raw_message)
+    except ValueError:
+      logger.warn("Non-JSON message {}".format(raw_message))
+      return
+
+    self.process_message(message)
+
+    json_status = json_encode(get_status())
+
+    for client in clients:
+      client.write_message(json_status)
+
+  def on_close(self):
+    logging.getLogger("WebSocketControlHandler").info("close")
+    clients.remove(self)
+</mark>
+			</code></pre>
+</div>
+			<div style="float: left; width: 400px">
+			<pre><code data-trim data-noescape style="font-size: 8px; line-height: 1em; height: 40em;">
+<mark>def process_message(self, message):
+    logger = logging.getLogger("WebSocketControlHandler")
+
+    # Blank messages are valid, extra fields are ignored
+    # Each key must have it's own defined parser
+    # State must be must be last
+    message_keys = ["time", "target_temperature", "power", "state"]
+    for key in message_keys:
+      if key in message: # TODO: If message is a string - dies
+        try:
+          setattr(microwave, key, message[key])
+        except ValueError:
+          logger.warn(
+            "Invalid JSON, invalid value for {}: {}"
+              .format(key, message))
+
+app = tornado.web.Application([
+  (r'/control', WebSocketControlHandler),
+  # A touch dodgy, anything with a literal . in it is a real file
+  # Anything without a dot is probably a fancy angular fake path
+  (r'/(.*\..*)', tornado.web.StaticFileHandler,
+    {"path": web_root, "default_filename": "index.html"}
+  ),
+  ], default_handler_class=IndexHandler
+)
+
+app.listen(8042)
+
+def update_microwave():
+  microwave.tick()
+
+  json_status = json_encode(get_status())
+
+  for client in clients:
+    client.write_message(json_status)
+
+
+PeriodicCallback(update_microwave, 1000).start()
+
+IOLoop.instance().start()
+</mark>
+
+			</code></pre>
+			</div>
+			<aside class="notes" data-markdown>
+- Python code, whew
+- Tornado library
+- Highlight tornado boilerplate
+- Highlight custom code
+- Show how custom code works
+
+- That is how the basic demo works, but wait, we are only 5 minutes in
+- We have a web based system, do remote access
+			</aside>
+		</section>
+		<section>
+			<h1>Websocket server</h1>
+			<div style="float: left; width: 400px">
+			<pre><code data-trim data-noescape style="font-size: 8px; line-height: 1em; height: 40em;">
+from tornado.ioloop import IOLoop, PeriodicCallback
+import tornado.web
+import tornado.websocket
+from tornado.escape import json_encode, json_decode
+
+<mark>from microwave import Microwave</mark>
+
+from datetime import datetime
+
+import logging
+
+logging.basicConfig(level=logging.DEBUG)
+
+clients = []
+
+<mark>microwave = Microwave()
+</mark>
+
+web_root = "../gui/"
+
+<mark>def get_status():
+    return {
+        "time" : microwave.time,
+        "time_remaining" : microwave.time_remaining,
+        "temperature" : microwave.temperature,
+        "target_temperature" : microwave.target_temperature,
+        "power" : microwave.power,
+        "state" : microwave.state,
+    }
+</mark>
+			</code></pre>
+</div>
+			<div style="float: left; width: 400px">
+			<pre><code data-trim data-noescape style="font-size: 8px; line-height: 1em; height: 40em;">
+
+class IndexHandler(tornado.web.RequestHandler):
+  @tornado.web.asynchronous
+  def get(request):
+    logging.getLogger("IndexHandler").info("FALLBACK")
+    with open(web_root + "index.html", 'r') as file:
+        request.write(file.read())
+    request.finish()
+
+class WebSocketControlHandler(tornado.websocket.WebSocketHandler):
+  def open(self, *args):
+    logging.getLogger("WebSocketControlHandler").info("open")
+    clients.append(self)
+
+  def check_origin(self, origin):
+    return True # Allow any origin
+
+  def on_message(self, raw_message):
+    logger = logging.getLogger("WebSocketControlHandler")
+
+    logger.debug(raw_message)
+
+    try:
+      message = json_decode(raw_message)
+    except ValueError:
+      logger.warn("Non-JSON message {}".format(raw_message))
+      return
+
+    self.process_message(message)
+
+    json_status = json_encode(get_status())
+
+    for client in clients:
+      client.write_message(json_status)
+
+  def on_close(self):
+    logging.getLogger("WebSocketControlHandler").info("close")
+    clients.remove(self)
+			</code></pre>
+</div>
+			<div style="float: left; width: 400px">
+			<pre><code data-trim data-noescape style="font-size: 8px; line-height: 1em; height: 40em;">
+
+  def process_message(self, message):
+    logger = logging.getLogger("WebSocketControlHandler")
+
+    # Blank messages are valid, extra fields are ignored
+    # Each key must have it's own defined parser
+    # State must be must be last
+    message_keys = ["time", "target_temperature", "power", "state"]
+    for key in message_keys:
+      if key in message: # TODO: If message is a string - dies
+        try:
+          setattr(microwave, key, message[key])
+        except ValueError:
+          logger.warn(
+            "Invalid JSON, invalid value for {}: {}"
+              .format(key, message))
+
+app = tornado.web.Application([
+  (r'/control', WebSocketControlHandler),
+  # A touch dodgy, anything with a literal . in it is a real file
+  # Anything without a dot is probably a fancy angular fake path
+  (r'/(.*\..*)', tornado.web.StaticFileHandler,
+    {"path": web_root, "default_filename": "index.html"}
+  ),
+  ], default_handler_class=IndexHandler
+)
+
+app.listen(8042)
+
+def update_microwave():
+  microwave.tick()
+
+  json_status = json_encode(get_status())
+
+  for client in clients:
+    client.write_message(json_status)
+
+
+PeriodicCallback(update_microwave, 1000).start()
+
+IOLoop.instance().start()
+
+
+			</code></pre>
+			</div>
+			<aside class="notes" data-markdown>
+- Python code, whew
+- Tornado library
+- Highlight tornado boilerplate
+- Highlight custom code
+- Show how custom code works
+
+- That is how the basic demo works, but wait, we are only 5 minutes in
+- We have a web based system, do remote access
+			</aside>
+		</section>

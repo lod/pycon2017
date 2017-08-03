@@ -1,0 +1,9 @@
+[submodule "source-code"]
+	path = source-code
+	url = git@github.com:lod/pycon2017-source-code.git
+[submodule "reveal.js"]
+	path = reveal.js
+	url = git@github.com:hakimel/reveal.js.git
+[submodule "reveal_external"]
+	path = reveal_external
+	url = git@github.com:janschoepke/reveal_external.git
